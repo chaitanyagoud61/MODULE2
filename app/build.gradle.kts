@@ -1,10 +1,11 @@
 plugins {
     id("com.android.application")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
 android {
     namespace = "com.example.moduletwo"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.example.moduletwo"
@@ -44,7 +45,16 @@ android {
 }
 
 dependencies {
+
     val lifecycle_version = "2.7.0"
+
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:17.0.0")
+
+    implementation ("com.karumi:dexter:6.2.2")
+    implementation ("com.intuit.ssp:ssp-android:1.0.5")
+    implementation ("com.intuit.sdp:sdp-android:1.0.5")
+    implementation ("com.google.android.material:material:1.2.0")
 
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
     // ViewModel utilities for Compose

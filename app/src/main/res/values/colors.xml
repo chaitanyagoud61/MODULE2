@@ -2,4 +2,6 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="hash">#7C7878</color>
+    <color name="light_hash">#F1EFEF</color>
 </resources>
