@@ -49,7 +49,7 @@ dependencies {
     val lifecycle_version = "2.7.0"
 
     implementation("com.google.android.gms:play-services-maps:18.2.0")
-    implementation("com.google.android.gms:play-services-location:17.0.0")
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 
     implementation ("com.karumi:dexter:6.2.2")
     implementation ("com.intuit.ssp:ssp-android:1.0.5")

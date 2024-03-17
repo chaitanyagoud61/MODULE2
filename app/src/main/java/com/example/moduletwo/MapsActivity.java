@@ -9,13 +9,17 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -28,12 +32,16 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MapStyleOptions;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.moduletwo.databinding.ActivityMapsBinding;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
@@ -43,7 +51,9 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -54,7 +64,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationCallback locationCallback;
     private ActivityMapsBinding binding;
     private SupportMapFragment mapFragment;
-
+    private LatLng user_latlng;
+    private BottomSheetDialog bottomSheetDialog;
     @Override
     protected void onDestroy() {
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
@@ -69,10 +80,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(binding.getRoot());
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        location_initi();
+
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+        location_initi();
+
+        bottomSheetDialog = new BottomSheetDialog(this);
+        createDialog();
+
+        bottomSheetDialog.show();
+        bottomSheetDialog.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+    }
+
+    private void createDialog() {
+
+        View view = getLayoutInflater().inflate(R.layout.bottom,null,false);
+        TextView textView = (TextView) view.findViewById(R.id.bottom_text);
+
+        bottomSheetDialog.setContentView(view);
+
     }
 
     private void location_initi() {
@@ -90,11 +117,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 LatLng new_positions = new LatLng(locationResult.getLastLocation().getLatitude(),
                         locationResult.getLastLocation().getLongitude());
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new_positions, 18f));
+                animateCamera(new_positions);
             }
         };
 
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getApplicationContext());
+
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(getApplication());
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -105,7 +134,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             // for ActivityCompat#requestPermissions for more details.
             return;
         }
-        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
+        fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
     }
 
     /**
@@ -120,7 +149,24 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        mMap.setOnMarkerDragListener(new GoogleMap.OnMarkerDragListener() {
+            @Override
+            public void onMarkerDrag(@NonNull Marker marker) {
 
+            }
+
+            @Override
+            public void onMarkerDragEnd(@NonNull Marker marker) {
+                LatLng position = marker.getPosition();
+                animateCamera_and_getadress(position);
+            }
+
+            @Override
+            public void onMarkerDragStart(@NonNull Marker marker) {
+
+            }
+        });
+        mMap.getUiSettings().setZoomControlsEnabled(true);
         Dexter.withContext(getApplicationContext())
                 .withPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
                         , Manifest.permission.INTERNET).withListener(new MultiplePermissionsListener() {
@@ -142,27 +188,48 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             }
                             mMap.setMyLocationEnabled(true);
                             mMap.getUiSettings().setMyLocationButtonEnabled(true);
-                            mMap.getUiSettings().setZoomControlsEnabled(true);
-                           /* mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
+                            mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener() {
                                 @Override
                                 public boolean onMyLocationButtonClick() {
+                                    if (ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                                            ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                        // TODO: Consider calling
+                                        //    ActivityCompat#requestPermissions
+                                        // here to request the missing permissions, and then overriding
+                                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                        //                                          int[] grantResults)
+                                        // to handle the case where the user grants the permission. See the documentation
+                                        // for ActivityCompat#requestPermissions for more details.
+                                        return true;
 
-                                    fusedLocationProviderClient.getLastLocation()
-                                            .addOnFailureListener(new OnFailureListener() {
-                                                @Override
-                                                public void onFailure(@NonNull Exception e) {
-                                                    Toast.makeText(getApplicationContext(), "" + e.getMessage(), Toast.LENGTH_SHORT).show();
-                                                }
-                                            }).addOnSuccessListener(new OnSuccessListener<Location>() {
-                                                @Override
-                                                public void onSuccess(Location location) {
-                                                    LatLng user_latlng = new LatLng(location.getLatitude(), location.getLongitude());
-                                                    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(user_latlng, 18f));
-                                                }
-                                            });
-                                    return false;
+                                    }
+                                    LocationServices.getFusedLocationProviderClient(getApplicationContext()).getLastLocation()
+                                                    .addOnSuccessListener(new OnSuccessListener<Location>() {
+                                                        @Override
+                                                        public void onSuccess(Location location) {
+                                                            if(location!=null){
+                                                                LatLng user_latlng = new LatLng(location.getLatitude(), location.getLongitude());
+                                                                animateCamera(user_latlng);
+                                                            }
+                                                        }
+                                                    });
+
+
+
+                                    return true;
                                 }
-                            });*/
+                            });
+
+                            LocationServices.getFusedLocationProviderClient(getApplicationContext()).getLastLocation()
+                                    .addOnSuccessListener(new OnSuccessListener<Location>() {
+                                        @Override
+                                        public void onSuccess(Location location) {
+                                            if(location!=null){
+                                                LatLng user_latlng = new LatLng(location.getLatitude(), location.getLongitude());
+                                                animateCamera(user_latlng);
+                                            }
+                                        }
+                                    });
 
                            /* View locationButton = ((View)mapFragment.getView().findViewById(Integer.parseInt("1"))
                                     .getParent()).findViewById(Integer.parseInt("2"));
@@ -189,6 +256,39 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
+    }
+
+    private void animateCamera(LatLng lat_lng) {
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lat_lng, 18f));
+        mMap.clear();
+        mMap.addMarker(new MarkerOptions().position(lat_lng).draggable(true));
+    }
+
+    private void animateCamera_and_getadress(LatLng lat_lng) {
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(lat_lng, 18f));
+        mMap.clear();
+        mMap.addMarker(new MarkerOptions().position(lat_lng).draggable(true));
+        getAddress(lat_lng);
+    }
+
+    private void getAddress(LatLng addrss_latlng) {
+
+        Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
+        String addressText = "";
+
+        try {
+            List<Address> addresses = geocoder.getFromLocation(addrss_latlng.latitude, addrss_latlng.longitude, 1);
+            if (addresses != null && addresses.size() > 0) {
+                Address address = addresses.get(0);
+                if (address.getLocality() != null) {
+                    Toast.makeText(getApplicationContext(), address.getLocality(), Toast.LENGTH_SHORT).show();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(getApplicationContext(), "Geocoder IOException: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showSettingsDialog() {
