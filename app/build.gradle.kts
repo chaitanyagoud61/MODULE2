@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -46,8 +47,14 @@ android {
 
 dependencies {
 
+    implementation("com.google.firebase:firebase-messaging:23.4.1")
+    implementation("androidx.annotation:annotation:1.6.0")
     val lifecycle_version = "2.7.0"
+    implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
 
+    // Add the dependency for the Firebase Authentication library
+    // When using the BoM, you don't specify versions in Firebase library dependencies
+    implementation("com.google.firebase:firebase-auth")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.android.gms:play-services-location:21.2.0")
 

@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Switch;
@@ -18,8 +19,11 @@ import com.example.moduletwo.databinding.ActivityMainBinding;
 import com.example.moduletwo.modelclass.Moduletwo_viewmodel;
 import com.example.moduletwo.networkinit.Networkcheck;
 import com.example.moduletwo.respostory.PrefController;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationBarView;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import java.util.ArrayList;
 
@@ -77,7 +81,17 @@ public class MainActivity extends AppCompatActivity implements Networkcheck {
             }
         });
 
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(new OnCompleteListener<String>() {
+                    @Override
+                    public void onComplete(@NonNull Task<String> task) {
+                        if (task.isSuccessful()) {
+                            String token = task.getResult();
+                            Log.d("token", token);   return;
+                        }
 
+                    }
+                });
 
         activityMainBinding.setLifecycleOwner(this);
     }

@@ -10,9 +10,8 @@ public class Network_initialization {
     public ConnectivityManager connectivityManager;
     public Networkcheck networkcheck;
 
-    public Network_initialization(Context context, ConnectivityManager connectivityManager,Networkcheck networkcheck) {
+    public Network_initialization(Context context, Networkcheck networkcheck) {
         this.context = context;
-        this.connectivityManager = connectivityManager;
         this.networkcheck = networkcheck;
     }
 

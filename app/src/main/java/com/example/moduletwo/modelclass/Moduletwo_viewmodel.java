@@ -15,6 +15,7 @@ public class Moduletwo_viewmodel extends AndroidViewModel {
 
     public Moduletwo_repo moduletwoRepo;
     public MutableLiveData<ArrayList<String>> name = new MutableLiveData();
+    public MutableLiveData<String> phn_num  = new MutableLiveData<>();
     public Moduletwo_viewmodel(@NonNull Application application) {
         super(application);
 
