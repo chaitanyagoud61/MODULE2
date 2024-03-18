@@ -101,6 +101,7 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
                         super.onCodeSent(s, forceResendingToken);
                         show_progress_bar(false);
                         verification_code = s;
+                        Toast.makeText(getApplicationContext(),verification_code,Toast.LENGTH_SHORT).show();
                         resendingToken = forceResendingToken;
                         activityHaliLoginBinding.numberLayout.setVisibility(View.GONE);
                         activityHaliLoginBinding.loginLayout.setVisibility(View.VISIBLE);
