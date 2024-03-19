@@ -5,9 +5,15 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.net.ConnectivityManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ProgressBar;
@@ -41,7 +47,10 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
     PhoneAuthProvider.ForceResendingToken resendingToken;
     private Boolean is_resend = true;
     public Network_initialization networkInitialization;
-    public ConnectivityManager connectivityManager;
+    public Service_Binder service_binder;
+    public Intent bind_intent;
+    private ServiceConnection serviceConnection;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,16 +59,28 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
         setContentView(activityHaliLoginBinding.getRoot());
         activityHaliLoginBinding.setLifecycleOwner(this);
         networkcheck = this;
-        networkInitialization = new Network_initialization(getApplicationContext(),networkcheck);
+        networkInitialization = new Network_initialization(getApplicationContext(), networkcheck);
         moduletwoViewmodel = ViewModelProvider.AndroidViewModelFactory.getInstance(getApplication()).create(Moduletwo_viewmodel.class);
 
+        if (!check_services()) {
+           /* Intent service_intent = new Intent(Hali_login.this, Normal_service.class);
+            startService(service_intent);*/
+           /* Intent foreground_intent = new Intent(Hali_login.this, Foreground_service.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(foreground_intent);
+            }*/
+            Intent intent = new Intent(Hali_login.this, Service_Binder.class);
+            startService(intent);
+            bind_intent = new Intent(Hali_login.this, Service_Binder.class);
+            bindservice();
+        }
         activityHaliLoginBinding.haliNext.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(moduletwoViewmodel.moduletwoRepo.is_network_connected) {
+                if (moduletwoViewmodel.moduletwoRepo.is_network_connected) {
                     moduletwoViewmodel.phn_num.setValue(activityHaliLoginBinding.haliNum.getText().toString());
                     sendOtp();
-                }else {
+                } else {
 
                 }
             }
@@ -73,9 +94,18 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
             }
         });
 
-
     }
 
+    public boolean check_services() {
+
+        ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo serviceInfo : activityManager.getRunningServices(Integer.MAX_VALUE)) {
+            if (Normal_service.class.getName().equals(serviceInfo.service.getClassName())) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public void sendOtp() {
 
@@ -101,7 +131,7 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
                         super.onCodeSent(s, forceResendingToken);
                         show_progress_bar(false);
                         verification_code = s;
-                        Toast.makeText(getApplicationContext(),verification_code,Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), verification_code, Toast.LENGTH_SHORT).show();
                         resendingToken = forceResendingToken;
                         activityHaliLoginBinding.numberLayout.setVisibility(View.GONE);
                         activityHaliLoginBinding.loginLayout.setVisibility(View.VISIBLE);
@@ -122,8 +152,8 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
             public void onComplete(@NonNull Task<AuthResult> task) {
 
                 if (task.isSuccessful()) {
-                    PrefController.saveData("login_success","Yes",getApplicationContext());
-                    Intent intent = new Intent(Hali_login.this,MainActivity.class);
+                    PrefController.saveData("login_success", "Yes", getApplicationContext());
+                    Intent intent = new Intent(Hali_login.this, MainActivity.class);
                     startActivity(intent);
                 } else {
 
@@ -155,6 +185,27 @@ public class Hali_login extends AppCompatActivity implements Networkcheck {
         }
         imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
     }
+
+    public void bindservice() {
+
+        if (serviceConnection == null) {
+            serviceConnection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+                    Service_Binder.Myservicebinder myservicebinder = (Service_Binder.Myservicebinder) iBinder;
+                    service_binder = myservicebinder.getservice();
+                    Toast.makeText(getApplicationContext(), service_binder.name, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName componentName) {
+
+                }
+            };
+        }
+        bindService(bind_intent, serviceConnection, Context.BIND_AUTO_CREATE);
+    }
+
 
     @Override
     public void check_network(Boolean isconnected) {
